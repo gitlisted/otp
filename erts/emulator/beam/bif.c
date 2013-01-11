@@ -2917,7 +2917,77 @@ BIF_RETTYPE float_to_list_1(BIF_ALIST_1)
      need = i*2;
      hp = HAlloc(BIF_P, need);
      BIF_RET(buf_to_intlist(&hp, fbuf, i, NIL));
- }
+}
+
+BIF_RETTYPE float_to_list_2(BIF_ALIST_2)
+{
+    const static int arity_two = make_arityval(2);
+    int decimals = SYS_DEFAULT_FLOAT_DECIMALS;
+    int compact = 0;
+    enum fmt_type_ {
+        FMT_LEGACY,
+        FMT_FIXED,
+        FMT_SCIENTIFIC
+    } fmt_type = FMT_LEGACY;
+    Eterm list = BIF_ARG_2;
+    Eterm arg;
+    int i;
+    Uint need;
+    Eterm* hp;
+    FloatDef f;
+    char fbuf[256];
+
+    /* check the arguments */
+    if (is_not_float(BIF_ARG_1))
+        goto badarg;
+
+    while (is_list(list)) {
+        arg = CAR(list_val(list));
+        if (arg == am_compact)
+            compact = 1;
+        else if (is_tuple(arg)) {
+            Eterm* tp = tuple_val(arg);
+            if (*tp == arity_two && is_small(tp[2]))
+                switch (tp[1]) {
+                    case am_decimals:
+                        decimals = signed_val(tp[2]);
+                        fmt_type = FMT_FIXED;
+                        break;
+                    case am_scientific:
+                        decimals = signed_val(tp[2]);
+                        fmt_type = FMT_SCIENTIFIC;
+                        break;
+                    default:
+                        goto badarg;
+                }
+            else
+                goto badarg;
+        } else {
+            goto badarg;
+        }
+        list = CDR(list_val(list));
+    }
+    if (is_not_nil(list)) {
+        goto badarg;
+    }
+
+    GET_DOUBLE(BIF_ARG_1, f);
+
+    if (fmt_type == FMT_FIXED) {
+        if ((i = sys_double_to_chars_fast(f.fd, fbuf, sizeof(fbuf),
+                decimals, compact)) <= 0)
+            BIF_ERROR(BIF_P, EXC_INTERNAL_ERROR);
+    } else {
+        if ((i = sys_double_to_chars_ext(f.fd, fbuf, sizeof(fbuf), decimals)) <= 0)
+            BIF_ERROR(BIF_P, EXC_INTERNAL_ERROR);
+    }
+
+    need = i*2;
+    hp = HAlloc(BIF_P, need);
+    BIF_RET(buf_to_intlist(&hp, fbuf, i, NIL));
+badarg:
+    BIF_ERROR(BIF_P, BADARG);
+}
 
 /**********************************************************************/
 

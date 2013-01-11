@@ -745,11 +745,11 @@ void erts_sys_unblock_fpe(int unmasked)
  */
 
 int
-sys_double_to_chars(double fp, char *buffer, size_t buffer_size)
+sys_double_to_chars_ext(double fp, char *buffer, size_t buffer_size, size_t decimals)
 {
     char *s = buffer;
-    
-    (void) erts_snprintf(buffer, buffer_size, "%.20e", fp);
+
+    (void) erts_snprintf(buffer, buffer_size, "%.*e", decimals, fp);
     /* Search upto decimal point */
     if (*s == '+' || *s == '-') s++;
     while (ISDIGIT(*s)) s++;

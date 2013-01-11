@@ -118,11 +118,11 @@ sys_chars_to_double(char *buf, double *fp)
 */
 
 int
-sys_double_to_chars(double fp, char *buffer, size_t buffer_size)
+sys_double_to_chars_ext(double fp, char *buffer, size_t buffer_size, size_t decimals)
 {
     char *s = buffer;
-    
-    (void) erts_snprintf(buffer, buffer_size, "%.20e", fp);
+
+    (void) erts_snprintf(buffer, buffer_size, "%.*e", decimals, fp);
     /* Search upto decimal point */
     if (*s == '+' || *s == '-') s++;
     while (isdigit(*s)) s++;
